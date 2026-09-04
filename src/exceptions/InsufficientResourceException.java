@@ -6,7 +6,7 @@ public class InsufficientResourceException extends Exception{
     }
 
     public InsufficientResourceException() {
-        super("Invalid operation because insufficient fuel, battery, water etc. ");
+        super("Invalid operation.");
     }
 
 }

@@ -6,7 +6,7 @@ public class DuplicateIdException extends Exception{
     }
 
     public DuplicateIdException() {
-        super("Invalid operation because of duplicate ID's. ");
+        super("Invalid operation.");
     }
 
 }

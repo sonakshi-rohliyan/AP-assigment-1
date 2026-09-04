@@ -6,7 +6,7 @@ public class InvalidOperationException extends Exception{
     }
 
     public InvalidOperationException() {
-        super("Invalid operation. For example, negative distance, invalid severity");
+        super("Invalid operation.");
     }
 
 }

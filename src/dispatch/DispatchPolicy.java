@@ -26,6 +26,7 @@ public class DispatchPolicy{
     public DispatchPolicy() {
         this(0.25, 12, 0.30, 15, 0.40, 20, 0.25, 10);
     }
+
     public double getLowFuelThreshold() { return lowFuelThreshold; }
     public double getLowFuelPenalty() { return lowFuelPenalty; }
     public double getLowBatteryThreshold() { return lowBatteryThreshold; }

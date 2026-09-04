@@ -6,7 +6,7 @@ public class NoSuitableUnitException extends Exception{
     }
 
     public NoSuitableUnitException() {
-        super("Invalid operation because no empty unit found. ");
+        super("Invalid operation.");
     }
 
 }
