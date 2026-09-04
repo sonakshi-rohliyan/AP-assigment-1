@@ -35,6 +35,7 @@ public class Incident {
     public String getRequiredCapability(){
         return "GENERAL";
     }
+
     public double getWorkload(){
         return severity;
     }
