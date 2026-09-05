@@ -23,4 +23,12 @@ public class GroundResponseUnit extends ResponseUnit{
         return distance*trafficFactor/getMaxSpeed();
     }
 
+    @Override
+    public void move(double distance) throws InvalidOperationException, InsufficientResourceException {
+        if (distance < 0) {
+            throw new InvalidOperationException("Distance can't be negative");
+        }
+        super.addDistance(distance);
+        System.out.println("Ground response unit " + getId() + " has moved by " +  distance + " km.");
+    }
 }

@@ -40,13 +40,18 @@ public class ResponseUnit {
     public String getAssignedIncidentId() { return assignedIncidentId; }
     public int getCompletedIncidents() { return completedIncidents; }
 
-    public void move(double distance) throws InvalidOperationException{
+    public void move(double distance) throws InvalidOperationException, InsufficientResourceException{
         if (distance < 0){
             throw new InvalidOperationException("Distance can't be negative");
         }
         totalDistanceTravelled = distance + totalDistanceTravelled;
 
-        System.out.println("Unit" + id + "travelled" + distance);
+        System.out.println("Response Unit " + id + " has travelled" + distance);
+    }
+
+    //helper function to help override move() in child classes
+    protected void addDistance(double distance){
+        totalDistanceTravelled = distance + totalDistanceTravelled;
     }
 
     public double estimateArrivalTime(double distance){
@@ -92,7 +97,7 @@ public class ResponseUnit {
         this.available = true;
     }
 
-    public void incrimentIncident(){
+    public void incrementIncident(){
         completedIncidents++;
     }
 

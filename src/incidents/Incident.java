@@ -41,13 +41,13 @@ public class Incident {
     }
     public void resolveIncident() throws InvalidOperationException{
         if (!status.equals("ASSIGNED")){
-            throw new InvalidOperationException("You can not RESOLVE a incident that is not ASSIGNED.")
+            throw new InvalidOperationException("You can not RESOLVE a incident that is not ASSIGNED.");
         }
         this.status = "RESOLVED";
     }
     public void assigningUnit(String unitId) throws InvalidOperationException{
         if (status.equals("RESOLVED")){
-            throw new InvalidOperationException("An incident with RESOLVED status can not be assigned.")
+            throw new InvalidOperationException("An incident with RESOLVED status can not be assigned.");
         }
         this.assignedUnitId = unitId;
         this.status = "ASSIGNED";
