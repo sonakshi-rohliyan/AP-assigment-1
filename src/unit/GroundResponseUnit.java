@@ -31,4 +31,5 @@ public class GroundResponseUnit extends ResponseUnit{
         super.addDistance(distance);
         System.out.println("Ground response unit " + getId() + " has moved by " +  distance + " km.");
     }
+
 }

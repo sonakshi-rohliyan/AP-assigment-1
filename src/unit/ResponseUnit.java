@@ -97,6 +97,7 @@ public class ResponseUnit {
         this.available = true;
     }
 
+
     public void incrementIncident(){
         completedIncidents++;
     }
@@ -110,5 +111,9 @@ public class ResponseUnit {
         System.out.println("Available: " + available);
         System.out.println("Assigned incident: " + (assignedIncidentId == null ? "None" : assignedIncidentId));
         System.out.println("Completed incidents: " + completedIncidents);
+    }
+
+    public void useResources(Incident incident) throws InvalidOperationException, InsufficientResourceException {
+
     }
 }

@@ -129,4 +129,10 @@ public class Ambulance extends GroundResponseUnit implements FuelPowered, Patien
         }
         return base_score;
     }
+
+    @Override
+    public void useResources(Incident incident) throws InvalidOperationException, InsufficientResourceException {
+        // patient will use beds then clear it after resolved so there's no need to do anything as it is redundant
+    }
+
 }

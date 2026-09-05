@@ -98,4 +98,10 @@ public class SearchDrone extends ResponseUnit implements BatteryPowered {
 
         return base_score;
     }
+
+    @Override
+    public void useResources(Incident incident) throws InvalidOperationException, InsufficientResourceException {
+        consumeBattery(incident.getWorkload());
+    }
+
 }

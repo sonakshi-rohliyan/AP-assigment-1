@@ -130,4 +130,10 @@ public class RepairVan extends GroundResponseUnit implements FuelPowered, Supply
 
         return base_score;
     }
+
+    @Override
+    public void useResources(Incident incident) throws InvalidOperationException, InsufficientResourceException {
+        useSupplies((int) incident.getWorkload());
+    }
+
 }

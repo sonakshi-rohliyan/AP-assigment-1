@@ -131,4 +131,10 @@ public class FireEngine extends GroundResponseUnit implements FuelPowered, Water
 
         return score;
     }
+
+    @Override
+    public void useResources(Incident incident) throws InvalidOperationException, InsufficientResourceException {
+        useWater(incident.getWorkload());
+    }
+
 }

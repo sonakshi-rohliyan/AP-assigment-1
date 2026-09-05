@@ -67,7 +67,7 @@ public class HazmatUnit extends GroundResponseUnit implements FuelPowered, Conta
     }
 
     @Override
-    public void loadContainmentAgent(double amount) throws InvalidOperationException {
+    public void loadContainment(double amount) throws InvalidOperationException {
         if (amount < 0) {
             throw new InvalidOperationException("Cannot load a negative amount of containment agent");
         }
@@ -124,4 +124,10 @@ public class HazmatUnit extends GroundResponseUnit implements FuelPowered, Conta
 
         return base_score;
     }
+
+    @Override
+    public void useResources(Incident incident) throws InvalidOperationException, InsufficientResourceException {
+        useContainment(incident.getWorkload());
+    }
+
 }
