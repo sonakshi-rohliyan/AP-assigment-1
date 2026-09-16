@@ -117,7 +117,6 @@ public class ResponseUnit {
 
     }
 
-
     public void restoreState(double totalDistanceTravelled, boolean available, String assignedIncidentId, int completedIncidents) {
         this.totalDistanceTravelled = totalDistanceTravelled;
         this.available = available;

@@ -14,7 +14,9 @@ public class Main {
 
         while (running) {
             printMenu();
-            int choice = readInt("Enter choice: ");
+            System.out.print("Enter choice: ");
+            String line = scanner.nextLine();
+            int choice = Integer.parseInt(line.trim());
 
             try {
                 switch (choice) {
@@ -33,11 +35,12 @@ public class Main {
                     case 13: rechargeAll(); break;
                     case 14: refillWaterAll(); break;
                     case 15: restockSuppliesAll(); break;
-                    case 16: System.out.println(manager.generateReport()); break;
-                    case 17: manager.displayUnserviceableIncidents(); break;
-                    case 18: saveState(); break;
-                    case 19: loadState(); break;
-                    case 20: running = false; System.out.println("Exiting..."); break;
+                    case 16: restockContainmentAll(); break;
+                    case 17: System.out.println(manager.generateReport()); break;
+                    case 18: manager.displayUnserviceableIncidents(); break;
+                    case 19: saveState(); break;
+                    case 20: loadState(); break;
+                    case 21: running = false; System.out.println("Exited"); break;
                     default: System.out.println("Invalid choice. Try again.");
                 }
             } catch (Exception e) {
@@ -50,29 +53,29 @@ public class Main {
     static void printMenu() {
         System.out.println("\n================ EMERGENCY DISPATCH SYSTEM ================");
         System.out.println("1. Add Response Unit");
-        System.out.println("2. Remove Response Unit");
+        System.out.println("2. Remove Response Unit\n");
         System.out.println("3. Report New Incident");
-        System.out.println("4. Remove Incident");
+        System.out.println("4. Remove Incident\n");
         System.out.println("5. Find Response Unit");
-        System.out.println("6. Find Incident");
+        System.out.println("6. Find Incident\n");
         System.out.println("7. List All Response Units");
-        System.out.println("8. List All Incidents");
+        System.out.println("8. List All Incidents\n");
         System.out.println("9. Preview Dispatch Candidates");
         System.out.println("10. Dispatch Best Unit");
-        System.out.println("11. Resolve Incident");
+        System.out.println("11. Resolve Incident\n");
         System.out.println("12. Refuel Fuel-Powered Units");
         System.out.println("13. Recharge Battery-Powered Units");
         System.out.println("14. Refill Water Carriers");
         System.out.println("15. Restock Supply Carriers");
-        System.out.println("16. Generate System Report");
-        System.out.println("17. Display Unserviceable Incidents");
-        System.out.println("18. Save State");
-        System.out.println("19. Load State");
-        System.out.println("20. Exit");
+        System.out.println("16. Restock Containment Carriers\n");
+        System.out.println("17. Generate System Report");
+        System.out.println("18. Display Unserviceable Incidents\n");
+        System.out.println("19. Save State");
+        System.out.println("20. Load State\n");
+        System.out.println("21. Exit");
         System.out.println("===========================================================");
     }
 
-    // ---------- input helpers ----------
     static int readInt(String prompt) {
         while (true) {
             System.out.print(prompt);
@@ -112,7 +115,7 @@ public class Main {
         }
     }
 
-    // ---------- menu actions ----------
+
     static void addUnit() throws Exception {
         String type = readString("Type (AMBULANCE/FIRE_ENGINE/REPAIR_VAN/SEARCH_DRONE/HAZMAT_UNIT): ").toUpperCase();
         String id = readString("ID: ");
@@ -262,6 +265,11 @@ public class Main {
     static void restockSuppliesAll() throws Exception {
         manager.restockAllSupplies(readInt("Supply amount: "));
         System.out.println("Restocked all supply carriers.");
+    }
+
+    static void restockContainmentAll() throws Exception{
+        manager.restockAllContainment(readDouble("Containment amount: "));
+        System.out.println("Restocked containment.");
     }
 
     static void saveState() throws Exception {

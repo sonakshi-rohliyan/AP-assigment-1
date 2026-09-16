@@ -23,6 +23,12 @@ public class DispatchManager {
         this.policy = policy;
     }
 
+    public int getUnitCount() { return unitCount; }
+    public int getIncidentCount() { return incidentCount; }
+    public ResponseUnit getUnitAt(int index) { return units[index]; }
+    public Incident getIncidentAt(int index) { return incidents[index]; }
+
+
     public void addUnit(ResponseUnit unit) throws DuplicateIdException, InvalidOperationException {
         if (unit == null){
             throw new InvalidOperationException("Unit can not be null");
@@ -311,8 +317,10 @@ public class DispatchManager {
         report += "Total assigned incidents: " + (incidentCount - total_open_incident - total_resolved_incident) + "\n";
         report += "Total resolved incidents: " + total_resolved_incident + "\n";
         report += "Total number of unresolved cases with severity-4 or severity-5: " + total_unresolved_severe + "\n";
-        report += "The response unit with the greatest number of completed incidents: " + unit_w_greatest_completed.getId() + "\n";
-        report += "The currently OPEN incident having the greatest priority weight: " + curr_open_w_greated_priority.getId() + "\n";
+        report += "The response unit with the greatest number of completed incidents: "
+                + (unit_w_greatest_completed == null ? "None" : unit_w_greatest_completed.getId()) + "\n";
+        report += "The currently OPEN incident having the greatest priority weight: "
+                + (curr_open_w_greated_priority == null ? "None" : curr_open_w_greated_priority.getId()) + "\n";
 
         int unserviceable = 0;
         for (int i = 0; i < incidentCount; i++) {
@@ -331,7 +339,7 @@ public class DispatchManager {
             }
         }
 
-        report += "The number of currently unserviceable incidents: " +unserviceable;
+        report += "The number of currently unserviceable incidents: " + unserviceable;
         return report;
     }
 
@@ -379,7 +387,7 @@ public class DispatchManager {
 
             for (int i = 0; i < unitCount; i++) {
                 ResponseUnit unit = units[i];
-                String type = getUnitTypeTag(unit);
+                String unitType = "UNKNOWN";
                 String trafficFactor = "0";
                 if (unit instanceof GroundResponseUnit) {
                     trafficFactor = String.valueOf(((GroundResponseUnit) unit).getTrafficFactor());
@@ -391,26 +399,31 @@ public class DispatchManager {
                 }
                 String battery = "0";
                 if (unit instanceof BatteryPowered) {
+                    unitType = "SEARCH_DRONE";
                     battery = String.valueOf(((BatteryPowered) unit).getBatteryLevel());
                 }
                 String water = "0";
                 if (unit instanceof WaterCarrier) {
+                    unitType = "FIRE_ENGINE";
                     water = String.valueOf(((WaterCarrier) unit).getWaterLevel());
                 }
                 String supplies = "0";
                 if (unit instanceof SupplyCarrier) {
+                    unitType = "REPAIR_VAN";
                     supplies = String.valueOf(((SupplyCarrier) unit).getSupplyLevel());
                 }
                 String containment = "0";
                 if (unit instanceof ContainmentCarrier) {
+                    unitType = "HAZMAT_UNIT";
                     containment = String.valueOf(((ContainmentCarrier) unit).getContainmentLevel());
                 }
                 String currentPatients = "0";
                 if (unit instanceof PatientCarrier) {
+                    unitType = "AMBULANCE";
                     currentPatients = String.valueOf(((PatientCarrier) unit).getCurrentPatients());
                 }
 
-                String line = type + "," + unit.getId() + "," + unit.getName() + "," + unit.getMaxSpeed() + ","
+                String line = unitType + "," + unit.getId() + "," + unit.getName() + "," + unit.getMaxSpeed() + ","
                         + trafficFactor + "," + unit.getTotalDistanceTravelled() + "," + unit.isAvailable() + ","
                         + (unit.getAssignedIncidentId() == null ? "NONE" : unit.getAssignedIncidentId()) + ","
                         + unit.getCompletedIncidents() + "," + fuel + "," + battery + "," + water + ","
@@ -424,27 +437,37 @@ public class DispatchManager {
 
             for (int i = 0; i < incidentCount; i++) {
                 Incident incident = incidents[i];
-                String type = getIncidentTypeTag(incident);
 
                 String extra = "";
+                String incidentType = "UNKNOWN";
+
                 if (incident instanceof MedicalIncident) {
+                    incidentType = "MEDICAL";
                     MedicalIncident m = (MedicalIncident) incident;
                     extra = m.getPatientCount() + "," + m.getCriticalPatients();
-                } else if (incident instanceof FireIncident) {
+                }
+                else if (incident instanceof FireIncident) {
+                    incidentType = "FIRE";
                     FireIncident f = (FireIncident) incident;
                     extra = f.getAffectedArea() + "," + f.getHazardousMaterial();
-                } else if (incident instanceof InfrastructureIncident) {
+                }
+                else if (incident instanceof InfrastructureIncident) {
+                    incidentType = "INFRASTRUCTURE";
                     InfrastructureIncident inf = (InfrastructureIncident) incident;
                     extra = inf.getAffectedUsers() + "," + inf.getCriticalService();
-                } else if (incident instanceof SearchIncident) {
+                }
+                else if (incident instanceof SearchIncident) {
+                    incidentType = "SEARCH";
                     SearchIncident s = (SearchIncident) incident;
                     extra = s.getMissingPersons() + "," + s.getSearchArea();
-                } else if (incident instanceof HazmatIncident) {
+                }
+                else if (incident instanceof HazmatIncident) {
+                    incidentType = "HAZMAT";
                     HazmatIncident h = (HazmatIncident) incident;
                     extra = h.getContaminantSpread() + "," + h.getPopulationAtRisk();
                 }
 
-                String line = type + "," + incident.getId() + "," + incident.getDescription() + ","
+                String line = incidentType + "," + incident.getId() + "," + incident.getDescription() + ","
                         + incident.getDistanceFromBase() + "," + incident.getSeverity() + "," + incident.getStatus() + ","
                         + (incident.getAssignedUnitId() == null ? "NONE" : incident.getAssignedUnitId()) + "," + extra;
 
@@ -457,26 +480,8 @@ public class DispatchManager {
         }
     }
 
-    private String getUnitTypeTag(ResponseUnit unit) {
-        if (unit instanceof Ambulance) return "AMBULANCE";
-        if (unit instanceof FireEngine) return "FIRE_ENGINE";
-        if (unit instanceof RepairVan) return "REPAIR_VAN";
-        if (unit instanceof SearchDrone) return "SEARCH_DRONE";
-        if (unit instanceof HazmatUnit) return "HAZMAT_UNIT";
-        return "UNKNOWN";
-    }
-
-    private String getIncidentTypeTag(Incident incident) {
-        if (incident instanceof MedicalIncident) return "MEDICAL";
-        if (incident instanceof FireIncident) return "FIRE";
-        if (incident instanceof InfrastructureIncident) return "INFRASTRUCTURE";
-        if (incident instanceof SearchIncident) return "SEARCH";
-        if (incident instanceof HazmatIncident) return "HAZMAT";
-        return "UNKNOWN";
-    }
 
     public void loadState(String prefix) throws InvalidOperationException {
-        // clear current state
         this.unitCount = 0;
         this.incidentCount = 0;
         for (int i = 0; i < units.length; i++) units[i] = null;
@@ -489,6 +494,7 @@ public class DispatchManager {
                 if (line.trim().isEmpty()) continue;
                 try {
                     String[] p = line.split(",");
+
                     String type = p[0];
                     String id = p[1];
                     String name = p[2];
@@ -506,46 +512,46 @@ public class DispatchManager {
 
                     ResponseUnit unit = null;
 
-                    switch (type) {
-                        case "AMBULANCE":
-                            Ambulance a = new Ambulance(id, name, maxSpeed, trafficFactor);
-                            a.setFuelLevel(fuel);
-                            unit = a;
-                            break;
-                        case "FIRE_ENGINE":
-                            FireEngine f = new FireEngine(id, name, maxSpeed, trafficFactor);
-                            f.setFuelLevel(fuel);
-                            f.setWaterLevel(water);
-                            unit = f;
-                            break;
-                        case "REPAIR_VAN":
-                            RepairVan r = new RepairVan(id, name, maxSpeed, trafficFactor);
-                            r.setFuelLevel(fuel);
-                            r.setSupplyLevel(supplies);
-                            unit = r;
-                            break;
-                        case "SEARCH_DRONE":
-                            SearchDrone d = new SearchDrone(id, name, maxSpeed);
-                            d.setBatteryLevel(battery);
-                            unit = d;
-                            break;
-                        case "HAZMAT_UNIT":
-                            HazmatUnit h = new HazmatUnit(id, name, maxSpeed, trafficFactor);
-                            h.setFuelLevel(fuel);
-                            h.setContainmentLevel(containment);
-                            unit = h;
-                            break;
-                        default:
-                            System.out.println("Skipping malformed unit record (unknown type): " + type);
-                            continue;
+                    if (type.equals("AMBULANCE")) {
+                        Ambulance a = new Ambulance(id, name, maxSpeed, trafficFactor);
+                        a.setFuelLevel(fuel);
+                        unit = a;
+                    }
+                    else if (type.equals("FIRE_ENGINE")) {
+                        FireEngine f = new FireEngine(id, name, maxSpeed, trafficFactor);
+                        f.setFuelLevel(fuel);
+                        f.setWaterLevel(water);
+                        unit = f;
+                    }
+                    else if (type.equals("REPAIR_VAN")) {
+                        RepairVan r = new RepairVan(id, name, maxSpeed, trafficFactor);
+                        r.setFuelLevel(fuel);
+                        r.setSupplyLevel(supplies);
+                        unit = r;
+                    }
+                    else if (type.equals("SEARCH_DRONE")) {
+                        SearchDrone d = new SearchDrone(id, name, maxSpeed);
+                        d.setBatteryLevel(battery);
+                        unit = d;
+                    }
+                    else if (type.equals("HAZMAT_UNIT")) {
+                        HazmatUnit h = new HazmatUnit(id, name, maxSpeed, trafficFactor);
+                        h.setFuelLevel(fuel);
+                        h.setContainmentLevel(containment);
+                        unit = h;
+                    }
+                    else {
+                        System.out.println("Skipping unknown type " + type);
+                        continue;
                     }
 
+                    // restoreState is an extra method added in response class as an alternative to set methods
                     unit.restoreState(totalDistance, available, assignedIncidentId, completed);
                     units[unitCount] = unit;
                     unitCount++;
 
                 } catch (Exception e) {
-                    System.out.println("Skipping malformed unit record: " + line);
+                    System.out.println("Skipping unknown unit record: " + line);
                 }
             }
             unitReader.close();
@@ -555,6 +561,7 @@ public class DispatchManager {
                 if (line.trim().isEmpty()) continue;
                 try {
                     String[] p = line.split(",");
+
                     String type = p[0];
                     String id = p[1];
                     String description = p[2];
@@ -565,38 +572,35 @@ public class DispatchManager {
 
                     Incident incident = null;
 
-                    switch (type) {
-                        case "MEDICAL":
-                            incident = new MedicalIncident(id, description, distance, severity,
-                                    Integer.parseInt(p[7]), Integer.parseInt(p[8]));
-                            break;
-                        case "FIRE":
-                            incident = new FireIncident(id, description, distance, severity,
-                                    Double.parseDouble(p[7]), Boolean.parseBoolean(p[8]));
-                            break;
-                        case "INFRASTRUCTURE":
-                            incident = new InfrastructureIncident(id, description, distance, severity,
-                                    Integer.parseInt(p[7]), Boolean.parseBoolean(p[8]));
-                            break;
-                        case "SEARCH":
-                            incident = new SearchIncident(id, description, distance, severity,
-                                    Integer.parseInt(p[7]), Double.parseDouble(p[8]));
-                            break;
-                        case "HAZMAT":
-                            incident = new HazmatIncident(id, description, distance, severity,
-                                    Double.parseDouble(p[7]), Integer.parseInt(p[8]));
-                            break;
-                        default:
-                            System.out.println("Skipping malformed incident record (unknown type): " + type);
-                            continue;
+                    if (type.equals("MEDICAL")) {
+                        incident = new MedicalIncident(id, description, distance, severity, Integer.parseInt(p[7]), Integer.parseInt(p[8]));
+                    }
+                    else if (type.equals("FIRE")) {
+                        incident = new FireIncident(id, description, distance, severity, Double.parseDouble(p[7]), Boolean.parseBoolean(p[8]));
+                    }
+                    else if (type.equals("INFRASTRUCTURE")) {
+                        incident = new InfrastructureIncident(id, description, distance, severity, Integer.parseInt(p[7]), Boolean.parseBoolean(p[8]));
+                    }
+                    else if (type.equals("SEARCH")) {
+                        incident = new SearchIncident(id, description, distance, severity, Integer.parseInt(p[7]), Double.parseDouble(p[8]));
+                    }
+                    else if (type.equals("HAZMAT")) {
+                        incident = new HazmatIncident(id, description, distance, severity, Double.parseDouble(p[7]), Integer.parseInt(p[8]));
+                    }
+                    else {
+                        System.out.println("Skipping unknown incident record type  " + type);
+                        continue;
                     }
 
                     incident.restoreState(status, assignedUnitId);
                     incidents[incidentCount] = incident;
                     incidentCount++;
+                    incident.restoreState(status, assignedUnitId);
+                    incidents[incidentCount] = incident;
+                    incidentCount++;
 
                 } catch (Exception e) {
-                    System.out.println("Skipping malformed incident record: " + line);
+                    System.out.println("Skipping unknown incident record: " + line);
                 }
             }
             incidentReader.close();
@@ -606,8 +610,4 @@ public class DispatchManager {
         }
     }
 
-    public int getUnitCount() { return unitCount; }
-    public int getIncidentCount() { return incidentCount; }
-    public ResponseUnit getUnitAt(int index) { return units[index]; }
-    public Incident getIncidentAt(int index) { return incidents[index]; }
 }
