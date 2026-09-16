@@ -1,9 +1,12 @@
 package dispatch;
 
+import java.io.*;
+
 import capabilities.*;
 import exceptions.*;
-import incidents.Incident;
-import unit.ResponseUnit;
+import unit.*;
+import incidents.*;
+import capabilities.*;
 
 public class DispatchManager {
     private ResponseUnit[] units;
@@ -329,7 +332,7 @@ public class DispatchManager {
         }
 
         report += "The number of currently unserviceable incidents: " +unserviceable;
-        return report
+        return report;
     }
 
     public void displayUnserviceableIncidents() {
@@ -369,4 +372,242 @@ public class DispatchManager {
             System.out.println("All open incidents are currently serviceable.");
         }
     }
+
+    public void saveState(String prefix) throws InvalidOperationException {
+        try {
+            PrintWriter unitWriter = new PrintWriter(new FileWriter(prefix + "_units.csv"));
+
+            for (int i = 0; i < unitCount; i++) {
+                ResponseUnit unit = units[i];
+                String type = getUnitTypeTag(unit);
+                String trafficFactor = "0";
+                if (unit instanceof GroundResponseUnit) {
+                    trafficFactor = String.valueOf(((GroundResponseUnit) unit).getTrafficFactor());
+                }
+
+                String fuel = "0";
+                if (unit instanceof FuelPowered) {
+                    fuel = String.valueOf(((FuelPowered) unit).getFuelLevel());
+                }
+                String battery = "0";
+                if (unit instanceof BatteryPowered) {
+                    battery = String.valueOf(((BatteryPowered) unit).getBatteryLevel());
+                }
+                String water = "0";
+                if (unit instanceof WaterCarrier) {
+                    water = String.valueOf(((WaterCarrier) unit).getWaterLevel());
+                }
+                String supplies = "0";
+                if (unit instanceof SupplyCarrier) {
+                    supplies = String.valueOf(((SupplyCarrier) unit).getSupplyLevel());
+                }
+                String containment = "0";
+                if (unit instanceof ContainmentCarrier) {
+                    containment = String.valueOf(((ContainmentCarrier) unit).getContainmentLevel());
+                }
+                String currentPatients = "0";
+                if (unit instanceof PatientCarrier) {
+                    currentPatients = String.valueOf(((PatientCarrier) unit).getCurrentPatients());
+                }
+
+                String line = type + "," + unit.getId() + "," + unit.getName() + "," + unit.getMaxSpeed() + ","
+                        + trafficFactor + "," + unit.getTotalDistanceTravelled() + "," + unit.isAvailable() + ","
+                        + (unit.getAssignedIncidentId() == null ? "NONE" : unit.getAssignedIncidentId()) + ","
+                        + unit.getCompletedIncidents() + "," + fuel + "," + battery + "," + water + ","
+                        + supplies + "," + containment + "," + currentPatients;
+
+                unitWriter.println(line);
+            }
+            unitWriter.close();
+
+            PrintWriter incidentWriter = new PrintWriter(new FileWriter(prefix + "_incidents.csv"));
+
+            for (int i = 0; i < incidentCount; i++) {
+                Incident incident = incidents[i];
+                String type = getIncidentTypeTag(incident);
+
+                String extra = "";
+                if (incident instanceof MedicalIncident) {
+                    MedicalIncident m = (MedicalIncident) incident;
+                    extra = m.getPatientCount() + "," + m.getCriticalPatients();
+                } else if (incident instanceof FireIncident) {
+                    FireIncident f = (FireIncident) incident;
+                    extra = f.getAffectedArea() + "," + f.getHazardousMaterial();
+                } else if (incident instanceof InfrastructureIncident) {
+                    InfrastructureIncident inf = (InfrastructureIncident) incident;
+                    extra = inf.getAffectedUsers() + "," + inf.getCriticalService();
+                } else if (incident instanceof SearchIncident) {
+                    SearchIncident s = (SearchIncident) incident;
+                    extra = s.getMissingPersons() + "," + s.getSearchArea();
+                } else if (incident instanceof HazmatIncident) {
+                    HazmatIncident h = (HazmatIncident) incident;
+                    extra = h.getContaminantSpread() + "," + h.getPopulationAtRisk();
+                }
+
+                String line = type + "," + incident.getId() + "," + incident.getDescription() + ","
+                        + incident.getDistanceFromBase() + "," + incident.getSeverity() + "," + incident.getStatus() + ","
+                        + (incident.getAssignedUnitId() == null ? "NONE" : incident.getAssignedUnitId()) + "," + extra;
+
+                incidentWriter.println(line);
+            }
+            incidentWriter.close();
+
+        } catch (IOException e) {
+            throw new InvalidOperationException("Failed to save state: " + e.getMessage());
+        }
+    }
+
+    private String getUnitTypeTag(ResponseUnit unit) {
+        if (unit instanceof Ambulance) return "AMBULANCE";
+        if (unit instanceof FireEngine) return "FIRE_ENGINE";
+        if (unit instanceof RepairVan) return "REPAIR_VAN";
+        if (unit instanceof SearchDrone) return "SEARCH_DRONE";
+        if (unit instanceof HazmatUnit) return "HAZMAT_UNIT";
+        return "UNKNOWN";
+    }
+
+    private String getIncidentTypeTag(Incident incident) {
+        if (incident instanceof MedicalIncident) return "MEDICAL";
+        if (incident instanceof FireIncident) return "FIRE";
+        if (incident instanceof InfrastructureIncident) return "INFRASTRUCTURE";
+        if (incident instanceof SearchIncident) return "SEARCH";
+        if (incident instanceof HazmatIncident) return "HAZMAT";
+        return "UNKNOWN";
+    }
+
+    public void loadState(String prefix) throws InvalidOperationException {
+        // clear current state
+        this.unitCount = 0;
+        this.incidentCount = 0;
+        for (int i = 0; i < units.length; i++) units[i] = null;
+        for (int i = 0; i < incidents.length; i++) incidents[i] = null;
+
+        try {
+            BufferedReader unitReader = new BufferedReader(new FileReader(prefix + "_units.csv"));
+            String line;
+            while ((line = unitReader.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                try {
+                    String[] p = line.split(",");
+                    String type = p[0];
+                    String id = p[1];
+                    String name = p[2];
+                    double maxSpeed = Double.parseDouble(p[3]);
+                    double trafficFactor = Double.parseDouble(p[4]);
+                    double totalDistance = Double.parseDouble(p[5]);
+                    boolean available = Boolean.parseBoolean(p[6]);
+                    String assignedIncidentId = p[7].equals("NONE") ? null : p[7];
+                    int completed = Integer.parseInt(p[8]);
+                    double fuel = Double.parseDouble(p[9]);
+                    double battery = Double.parseDouble(p[10]);
+                    double water = Double.parseDouble(p[11]);
+                    int supplies = Integer.parseInt(p[12]);
+                    double containment = Double.parseDouble(p[13]);
+
+                    ResponseUnit unit = null;
+
+                    switch (type) {
+                        case "AMBULANCE":
+                            Ambulance a = new Ambulance(id, name, maxSpeed, trafficFactor);
+                            a.setFuelLevel(fuel);
+                            unit = a;
+                            break;
+                        case "FIRE_ENGINE":
+                            FireEngine f = new FireEngine(id, name, maxSpeed, trafficFactor);
+                            f.setFuelLevel(fuel);
+                            f.setWaterLevel(water);
+                            unit = f;
+                            break;
+                        case "REPAIR_VAN":
+                            RepairVan r = new RepairVan(id, name, maxSpeed, trafficFactor);
+                            r.setFuelLevel(fuel);
+                            r.setSupplyLevel(supplies);
+                            unit = r;
+                            break;
+                        case "SEARCH_DRONE":
+                            SearchDrone d = new SearchDrone(id, name, maxSpeed);
+                            d.setBatteryLevel(battery);
+                            unit = d;
+                            break;
+                        case "HAZMAT_UNIT":
+                            HazmatUnit h = new HazmatUnit(id, name, maxSpeed, trafficFactor);
+                            h.setFuelLevel(fuel);
+                            h.setContainmentLevel(containment);
+                            unit = h;
+                            break;
+                        default:
+                            System.out.println("Skipping malformed unit record (unknown type): " + type);
+                            continue;
+                    }
+
+                    unit.restoreState(totalDistance, available, assignedIncidentId, completed);
+                    units[unitCount] = unit;
+                    unitCount++;
+
+                } catch (Exception e) {
+                    System.out.println("Skipping malformed unit record: " + line);
+                }
+            }
+            unitReader.close();
+
+            BufferedReader incidentReader = new BufferedReader(new FileReader(prefix + "_incidents.csv"));
+            while ((line = incidentReader.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                try {
+                    String[] p = line.split(",");
+                    String type = p[0];
+                    String id = p[1];
+                    String description = p[2];
+                    double distance = Double.parseDouble(p[3]);
+                    int severity = Integer.parseInt(p[4]);
+                    String status = p[5];
+                    String assignedUnitId = p[6].equals("NONE") ? null : p[6];
+
+                    Incident incident = null;
+
+                    switch (type) {
+                        case "MEDICAL":
+                            incident = new MedicalIncident(id, description, distance, severity,
+                                    Integer.parseInt(p[7]), Integer.parseInt(p[8]));
+                            break;
+                        case "FIRE":
+                            incident = new FireIncident(id, description, distance, severity,
+                                    Double.parseDouble(p[7]), Boolean.parseBoolean(p[8]));
+                            break;
+                        case "INFRASTRUCTURE":
+                            incident = new InfrastructureIncident(id, description, distance, severity,
+                                    Integer.parseInt(p[7]), Boolean.parseBoolean(p[8]));
+                            break;
+                        case "SEARCH":
+                            incident = new SearchIncident(id, description, distance, severity,
+                                    Integer.parseInt(p[7]), Double.parseDouble(p[8]));
+                            break;
+                        case "HAZMAT":
+                            incident = new HazmatIncident(id, description, distance, severity,
+                                    Double.parseDouble(p[7]), Integer.parseInt(p[8]));
+                            break;
+                        default:
+                            System.out.println("Skipping malformed incident record (unknown type): " + type);
+                            continue;
+                    }
+
+                    incident.restoreState(status, assignedUnitId);
+                    incidents[incidentCount] = incident;
+                    incidentCount++;
+
+                } catch (Exception e) {
+                    System.out.println("Skipping malformed incident record: " + line);
+                }
+            }
+            incidentReader.close();
+
+        } catch (IOException e) {
+            throw new InvalidOperationException("Failed to load state: " + e.getMessage());
+        }
+    }
+
+    public int getUnitCount() { return unitCount; }
+    public int getIncidentCount() { return incidentCount; }
+    public ResponseUnit getUnitAt(int index) { return units[index]; }
+    public Incident getIncidentAt(int index) { return incidents[index]; }
 }

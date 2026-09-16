@@ -135,4 +135,8 @@ public class Ambulance extends GroundResponseUnit implements FuelPowered, Patien
         // patient will use beds then clear it after resolved so there's no need to do anything as it is redundant
     }
 
+    public void setFuelLevel(double currentFuel) {
+        this.currentFuel = currentFuel;
+    }
+
 }

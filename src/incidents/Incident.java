@@ -61,6 +61,10 @@ public class Incident {
         System.out.println("Required capability: " + getRequiredCapability());
         System.out.println("Priority weight: " + getPriorityWeight());
         System.out.println("Workload: " + getWorkload());
+    }
 
+    public void restoreState(String status, String assignedUnitId) {
+        this.status = status;
+        this.assignedUnitId = assignedUnitId;
     }
 }

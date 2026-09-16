@@ -136,4 +136,11 @@ public class RepairVan extends GroundResponseUnit implements FuelPowered, Supply
         useSupplies((int) incident.getWorkload());
     }
 
+    public void setFuelLevel(double currentFuel) {
+        this.currentFuel = currentFuel;
+    }
+
+    public void setSupplyLevel(int currentSupplies) {
+        this.currentSupplies = currentSupplies;
+    }
 }

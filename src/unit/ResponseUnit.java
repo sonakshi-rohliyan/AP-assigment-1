@@ -116,4 +116,13 @@ public class ResponseUnit {
     public void useResources(Incident incident) throws InvalidOperationException, InsufficientResourceException {
 
     }
+
+
+    public void restoreState(double totalDistanceTravelled, boolean available, String assignedIncidentId, int completedIncidents) {
+        this.totalDistanceTravelled = totalDistanceTravelled;
+        this.available = available;
+        this.assignedIncidentId = assignedIncidentId;
+        this.completedIncidents = completedIncidents;
+    }
+
 }

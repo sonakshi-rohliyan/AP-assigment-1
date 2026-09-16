@@ -130,4 +130,11 @@ public class HazmatUnit extends GroundResponseUnit implements FuelPowered, Conta
         useContainment(incident.getWorkload());
     }
 
+    public void setFuelLevel(double currentFuel) {
+        this.currentFuel = currentFuel;
+    }
+
+    public void setContainmentLevel(double currentContainment) {
+        this.currentContainment = currentContainment;
+    }
 }

@@ -104,4 +104,7 @@ public class SearchDrone extends ResponseUnit implements BatteryPowered {
         consumeBattery(incident.getWorkload());
     }
 
+    public void setBatteryLevel(double currentBattery) {
+        this.currentBattery = currentBattery;
+    }
 }
