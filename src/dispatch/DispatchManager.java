@@ -191,8 +191,14 @@ public class DispatchManager {
             else if(!unit.canHandle(incident)){
                 System.out.println(unit.getId() + "    REJECTED    Capability mismatch ");
             }
-            else if (!unit.hasResourcesFor(incident)) {
+            else if (unit instanceof GroundResponseUnit && !unit.hasExtraResource(incident)) {
                 System.out.println(unit.getId() + "    REJECTED    Insufficient resources ");
+            }
+            else if (unit instanceof FuelPowered && !unit.hasResourcesFor(incident)){
+                System.out.println(unit.getId() + "    REJECTED    Insufficient fuel ");
+            }
+            else if (unit instanceof BatteryPowered && !unit.hasResourcesFor(incident)){
+                System.out.println(unit.getId() + "    REJECTED    Insufficient battery ");
             }
         }
         if (best == null){
@@ -592,9 +598,6 @@ public class DispatchManager {
                         continue;
                     }
 
-                    incident.restoreState(status, assignedUnitId);
-                    incidents[incidentCount] = incident;
-                    incidentCount++;
                     incident.restoreState(status, assignedUnitId);
                     incidents[incidentCount] = incident;
                     incidentCount++;

@@ -111,6 +111,14 @@ public class HazmatUnit extends GroundResponseUnit implements FuelPowered, Conta
         return false;
     }
 
+    public boolean hasExtraResource(Incident incident) {
+        if (incident.getRequiredCapability().equals("HAZMAT")) {
+            return !(currentContainment < incident.getWorkload());
+        }
+        return true;
+    }
+
+
     @Override
     public double calculateDispatchScore(Incident incident, DispatchPolicy policy) {
         double base_score = super.calculateDispatchScore(incident, policy);

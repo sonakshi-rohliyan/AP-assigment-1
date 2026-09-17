@@ -219,14 +219,14 @@ public class Main {
     static void listUnits() {
         for (int i = 0; i < manager.getUnitCount(); i++) {
             manager.getUnitAt(i).display();
-            System.out.println("---");
+            System.out.println("\n");
         }
     }
 
     static void listIncidents() {
         for (int i = 0; i < manager.getIncidentCount(); i++) {
             manager.getIncidentAt(i).displayIncident();
-            System.out.println("---");
+            System.out.println("\n");
         }
     }
 

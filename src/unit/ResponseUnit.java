@@ -124,4 +124,10 @@ public class ResponseUnit {
         this.completedIncidents = completedIncidents;
     }
 
+    public boolean hasExtraResource(Incident incident){
+        return true;
+    }
+
+
+
 }

@@ -137,6 +137,13 @@ public class FireEngine extends GroundResponseUnit implements FuelPowered, Water
         useWater(incident.getWorkload());
     }
 
+    public boolean hasExtraResource(Incident incident){
+        if (incident.getRequiredCapability().equals("FIRE")) {
+            return !(waterLevel < incident.getWorkload());
+        }
+        return true;
+    }
+
     public void setFuelLevel(double currentFuel) {
         this.currentFuel = currentFuel;
     }

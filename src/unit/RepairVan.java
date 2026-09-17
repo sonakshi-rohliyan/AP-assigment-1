@@ -117,7 +117,17 @@ public class RepairVan extends GroundResponseUnit implements FuelPowered, Supply
         return false;
     }
 
-    @Override
+    public boolean hasExtraResource(Incident incident) {
+        if (incident.getRequiredCapability().equals("REPAIR")) {
+            if (currentSupplies < incident.getWorkload()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+        @Override
     public double calculateDispatchScore(Incident incident, DispatchPolicy policy) {
         double base_score = super.calculateDispatchScore(incident, policy);
 
@@ -143,4 +153,5 @@ public class RepairVan extends GroundResponseUnit implements FuelPowered, Supply
     public void setSupplyLevel(int currentSupplies) {
         this.currentSupplies = currentSupplies;
     }
+
 }
