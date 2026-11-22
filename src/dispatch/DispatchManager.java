@@ -34,7 +34,7 @@ public class DispatchManager {
         return capabilities;
     }
 
-    public void addUnit(ResponseUnit unit) throws DuplicateIdException, InvalidOperationException {
+    public synchronized void addUnit(ResponseUnit unit) throws DuplicateIdException, InvalidOperationException {
         if (unit == null){
             throw new InvalidOperationException("Unit can not be null");
         }
@@ -44,7 +44,7 @@ public class DispatchManager {
         units.put(unit.getId(), unit);
     }
 
-    public void addIncident(Incident incident) throws InvalidOperationException, DuplicateIdException {
+    public synchronized void addIncident(Incident incident) throws InvalidOperationException, DuplicateIdException {
         if (incident == null) {
             throw new InvalidOperationException("Incident cannot be null");
         }
@@ -86,27 +86,27 @@ public class DispatchManager {
         incidents.remove(id);
     }
 
-    public ArrayList<ResponseUnit> getAllUnits() {
+    public synchronized ArrayList<ResponseUnit> getAllUnits() {
         return new ArrayList<>(units.values());
     }
 
-    public ArrayList<Incident> getAllIncidents() {
+    public synchronized ArrayList<Incident> getAllIncidents() {
         return new ArrayList<>(incidents.values());
     }
 
-    public ArrayList<ResponseUnit> getUnitsSortedByDistance() {
+    public synchronized ArrayList<ResponseUnit> getUnitsSortedByDistance() {
         ArrayList<ResponseUnit> sorted = new ArrayList<>(units.values());
         Collections.sort(sorted, new UnitDistanceComparator());
         return sorted;
     }
 
-    public ArrayList<Incident> getIncidentsSortedByPriority() {
+    public synchronized ArrayList<Incident> getIncidentsSortedByPriority() {
         ArrayList<Incident> sorted = new ArrayList<>(incidents.values());
         Collections.sort(sorted, new IncidentPriorityComparator());
         return sorted;
     }
 
-    public ArrayList<ResponseUnit> getAvailableUnits(){
+    public synchronized ArrayList<ResponseUnit> getAvailableUnits(){
         ArrayList<ResponseUnit> ans = new ArrayList<>();
         for (ResponseUnit unit : units.values()){
             if (unit.isAvailable()){
@@ -116,7 +116,7 @@ public class DispatchManager {
         return ans;
     }
 
-    public ArrayList<Incident> getIncidentsByStatus(String status) {
+    public synchronized ArrayList<Incident> getIncidentsByStatus(String status) {
         ArrayList<Incident> ans = new ArrayList<>();
         for (Incident incident : incidents.values()) {
             if (incident.getStatus().equals(status)) {
@@ -127,7 +127,7 @@ public class DispatchManager {
     }
 
 
-    public ResponseUnit dispatchBestUnit(String incidentId) throws InvalidOperationException, NoSuitableUnitException, InsufficientResourceException{
+    public synchronized ResponseUnit dispatchBestUnit(String incidentId) throws InvalidOperationException, NoSuitableUnitException, InsufficientResourceException{
         Incident incident = findIncident(incidentId);
         if (incident == null) {
             throw new InvalidOperationException("No such incident id exists ");
@@ -165,7 +165,7 @@ public class DispatchManager {
     }
 
 
-    public void displayDispatchCandidates(String incidentId)throws InvalidOperationException, NoSuitableUnitException{
+    public synchronized void displayDispatchCandidates(String incidentId)throws InvalidOperationException, NoSuitableUnitException{
         Incident incident = findIncident(incidentId);
         if (incident == null) {
             throw new InvalidOperationException("No such incident id exists ");
@@ -219,7 +219,7 @@ public class DispatchManager {
         }
     }
 
-    public void resolveIncident(String incidentId) throws InvalidOperationException, InsufficientResourceException {
+    public synchronized void resolveIncident(String incidentId) throws InvalidOperationException, InsufficientResourceException {
 
         Incident incident = findIncident(incidentId);
         if (incident == null) {
@@ -242,7 +242,7 @@ public class DispatchManager {
         incident.resolveIncident();
     }
 
-    public void refuelAll(double amount) throws InvalidOperationException {
+    public synchronized void refuelAll(double amount) throws InvalidOperationException {
         for (ResponseUnit unit : units.values()) {
             if (unit instanceof FuelPowered) {
                 ((FuelPowered) unit).refuel(amount);
@@ -250,7 +250,7 @@ public class DispatchManager {
         }
     }
 
-    public void rechargeAll(double amount) throws InvalidOperationException {
+    public synchronized void rechargeAll(double amount) throws InvalidOperationException {
         for (ResponseUnit unit : units.values()) {
             if (unit instanceof BatteryPowered) {
                 ((BatteryPowered) unit).recharge(amount);
@@ -258,7 +258,7 @@ public class DispatchManager {
         }
     }
 
-    public void refillAllWater(double amount) throws InvalidOperationException {
+    public synchronized void refillAllWater(double amount) throws InvalidOperationException {
         for (ResponseUnit unit : units.values()) {
             if (unit instanceof WaterCarrier) {
                 ((WaterCarrier) unit).refillWater(amount);
@@ -266,7 +266,7 @@ public class DispatchManager {
         }
     }
 
-    public void restockAllSupplies(double amount) throws InvalidOperationException {
+    public synchronized void restockAllSupplies(double amount) throws InvalidOperationException {
         for (ResponseUnit unit : units.values()) {
             if (unit instanceof SupplyCarrier) {
                 ((SupplyCarrier) unit).loadSupplies((int) amount);
@@ -274,7 +274,7 @@ public class DispatchManager {
         }
     }
 
-    public void restockAllContainment(double amount) throws InvalidOperationException {
+    public synchronized void restockAllContainment(double amount) throws InvalidOperationException {
         for (ResponseUnit unit : units.values()) {
             if (unit instanceof ContainmentCarrier) {
                 ((ContainmentCarrier) unit).loadContainment((int) amount);
@@ -282,7 +282,7 @@ public class DispatchManager {
         }
     }
 
-    public String generateReport() {
+    public synchronized String generateReport() {
         String report = "";
         report += "SYSTEM REPORT\n";
         report += "Total response units: " + units.size() + "\n";
@@ -367,7 +367,7 @@ public class DispatchManager {
         return report;
     }
 
-    public void displayUnserviceableIncidents() {
+    public synchronized void displayUnserviceableIncidents() {
         boolean foundAny = false;
 
         System.out.println("Currently Unserviceable Incidents");
@@ -404,7 +404,7 @@ public class DispatchManager {
     }
 
 
-    public void saveState(String prefix) throws InvalidOperationException {
+    public synchronized void saveState(String prefix) throws InvalidOperationException {
         try {
             PrintWriter unitWriter = new PrintWriter(new FileWriter(prefix + "_units.csv"));
 
@@ -502,7 +502,7 @@ public class DispatchManager {
     }
 
 
-    public void loadState(String prefix) throws InvalidOperationException {
+    public synchronized void loadState(String prefix) throws InvalidOperationException {
         HashMap<String, ResponseUnit> newUnits = new HashMap<>();
         HashMap<String, Incident> newIncidents = new HashMap<>();
 
