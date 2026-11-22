@@ -1,120 +1,131 @@
 package dispatch;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Collections;
+import java.util.Comparator;
 
 import capabilities.*;
 import exceptions.*;
 import unit.*;
 import incidents.*;
-import capabilities.*;
 
 public class DispatchManager {
-    private ResponseUnit[] units;
-    private Incident[] incidents;
-    private int unitCount;
-    private int incidentCount;
+    private HashMap<String, ResponseUnit> units;
+    private HashMap<String, Incident> incidents;
     private DispatchPolicy policy;
 
-    public DispatchManager(int maxUnits, int maxIncidents, DispatchPolicy policy) {
-        this.units = new ResponseUnit[maxUnits];
-        this.incidents = new Incident[maxIncidents];
-        this.unitCount = 0;
-        this.incidentCount = 0;
+    public DispatchManager(DispatchPolicy policy) {
+        this.units = new HashMap<>();
+        this.incidents = new HashMap<>();
         this.policy = policy;
     }
 
-    public int getUnitCount() { return unitCount; }
-    public int getIncidentCount() { return incidentCount; }
-    public ResponseUnit getUnitAt(int index) { return units[index]; }
-    public Incident getIncidentAt(int index) { return incidents[index]; }
+    public int getUnitCount() { return units.size(); }
+    public int getIncidentCount() { return incidents.size(); }
 
+    public HashSet<String> getDistinctCapabilities() {
+        HashSet<String> capabilities = new HashSet<>();
+        for (ResponseUnit unit : units.values()) {
+            capabilities.add(unit.getCapability());
+        }
+        return capabilities;
+    }
 
     public void addUnit(ResponseUnit unit) throws DuplicateIdException, InvalidOperationException {
         if (unit == null){
             throw new InvalidOperationException("Unit can not be null");
         }
-        if (findUnit(unit.getId()) != null) {
+        if (units.containsKey(unit.getId())) {
             throw new DuplicateIdException("Duplicate unit ID " + unit.getId());
         }
-        if (unitCount >= units.length) {
-            throw new InvalidOperationException("No space remaining to add more units");
-        }
-        units[unitCount] = unit;
-        unitCount++;
+        units.put(unit.getId(), unit);
     }
 
     public void addIncident(Incident incident) throws InvalidOperationException, DuplicateIdException {
         if (incident == null) {
             throw new InvalidOperationException("Incident cannot be null");
         }
-        if (incidentCount >= incidents.length) {
-            throw new InvalidOperationException("No space remaining to add more incidents");
-        }
-        if (findIncident(incident.getId()) != null) {
+        if (incidents.containsKey(incident.getId())) {
             throw new DuplicateIdException("Duplicate incident ID: " + incident.getId());
         }
-        incidents[incidentCount] = incident;
-        incidentCount++;
+        incidents.put(incident.getId(), incident);
     }
 
     public ResponseUnit findUnit(String id){
-        for (int i = 0; i < unitCount; i++){
-            if (units[i].getId().equals(id)){
-                return units[i];
-            }
-        }
-        return null;
+        return units.get(id);
     }
 
     public Incident findIncident(String id) {
-        for (int i = 0; i < incidentCount; i++) {
-            if (incidents[i].getId().equals(id)) {
-                return incidents[i];
-            }
-        }
-        return null;
+        return incidents.get(id);
     }
 
     public void removeUnit(String id) throws InvalidOperationException{
-        int index = -1;
-        for (int i = 0; i < unitCount; i++){
-            if (units[i].getId().equals(id)){
-                index = i;
-                break;
-            }
-        }
-        if (index == -1){
+        ResponseUnit unit = units.get(id);
+
+        if (unit == null){
             throw new InvalidOperationException("There is no such id found.");
         }
-        if (!units[index].isAvailable()){
+        if (!unit.isAvailable()){
             throw new InvalidOperationException("A unit that is assigned can not be removed");
         }
-        for (int i = index; i< unitCount -1; i++){
-            units[i] = units[i+1];
-        }
-        unitCount--;
+        units.remove(id);
     }
 
     public void removeIncident(String id) throws InvalidOperationException {
-        int index = -1;
-        for (int i = 0; i < incidentCount; i++) {
-            if (incidents[i].getId().equals(id)) {
-                index = i;
-                break;
-            }
-        }
-        if (index == -1) {
+        Incident incident = incidents.get(id);
+        if (incident == null) {
             throw new InvalidOperationException("There is no such id found");
         }
-        if (incidents[index].getStatus().equals("ASSIGNED")) {
+        if (incident.getStatus().equals("ASSIGNED")) {
             throw new InvalidOperationException("An incident that is assigned can not be removed");
         }
 
-        for (int i = index; i < incidentCount - 1; i++) {
-            incidents[i] = incidents[i + 1];
-        }
-        incidentCount--;
+        incidents.remove(id);
     }
+
+    public ArrayList<ResponseUnit> getAllUnits() {
+        return new ArrayList<>(units.values());
+    }
+
+    public ArrayList<Incident> getAllIncidents() {
+        return new ArrayList<>(incidents.values());
+    }
+
+    public ArrayList<ResponseUnit> getUnitsSortedByDistance() {
+        ArrayList<ResponseUnit> sorted = new ArrayList<>(units.values());
+        Collections.sort(sorted, new UnitDistanceComparator());
+        return sorted;
+    }
+
+    public ArrayList<Incident> getIncidentsSortedByPriority() {
+        ArrayList<Incident> sorted = new ArrayList<>(incidents.values());
+        Collections.sort(sorted, new IncidentPriorityComparator());
+        return sorted;
+    }
+
+    public ArrayList<ResponseUnit> getAvailableUnits(){
+        ArrayList<ResponseUnit> ans = new ArrayList<>();
+        for (ResponseUnit unit : units.values()){
+            if (unit.isAvailable()){
+                ans.add(unit);
+            }
+        }
+        return ans;
+    }
+
+    public ArrayList<Incident> getIncidentsByStatus(String status) {
+        ArrayList<Incident> ans = new ArrayList<>();
+        for (Incident incident : incidents.values()) {
+            if (incident.getStatus().equals(status)) {
+                ans.add(incident);
+            }
+        }
+        return ans;
+    }
+
 
     public ResponseUnit dispatchBestUnit(String incidentId) throws InvalidOperationException, NoSuitableUnitException, InsufficientResourceException{
         Incident incident = findIncident(incidentId);
@@ -128,8 +139,7 @@ public class DispatchManager {
         double minim = Double.MAX_VALUE;
         ResponseUnit best = null;
 
-        for (int i = 0; i <unitCount; i++){
-            ResponseUnit unit = units[i];
+        for (ResponseUnit unit : units.values()){
             if (unit.isAvailable() && unit.canHandle(incident) && unit.hasResourcesFor(incident)) {
                 double score = unit.calculateDispatchScore(incident, policy);
                 if (score < minim) {
@@ -147,12 +157,13 @@ public class DispatchManager {
             throw new NoSuitableUnitException("No suitable unit found for incident " + incidentId);
         }
 
+        best.move(incident.getDistanceFromBase());
         best.assignIncident(incident.getId());
         incident.assigningUnit(best.getId());
-        best.move(incident.getDistanceFromBase());
 
         return best;
     }
+
 
     public void displayDispatchCandidates(String incidentId)throws InvalidOperationException, NoSuitableUnitException{
         Incident incident = findIncident(incidentId);
@@ -170,8 +181,7 @@ public class DispatchManager {
         double minim = Double.MAX_VALUE;
         ResponseUnit best = null;
 
-        for (int i = 0; i <unitCount; i++){
-            ResponseUnit unit = units[i];
+        for (ResponseUnit unit : units.values()){
             if (unit.isAvailable() && unit.canHandle(incident) && unit.hasResourcesFor(incident)) {
                 double score = unit.calculateDispatchScore(incident, policy);
                 if (score < minim) {
@@ -232,42 +242,42 @@ public class DispatchManager {
         incident.resolveIncident();
     }
 
-    public void refuelAll(double amount)throws InvalidOperationException{
-        for (int i = 0; i < unitCount; i++ ){
-            if (units[i] instanceof FuelPowered){
-                ((FuelPowered) units[i]).refuel(amount);
+    public void refuelAll(double amount) throws InvalidOperationException {
+        for (ResponseUnit unit : units.values()) {
+            if (unit instanceof FuelPowered) {
+                ((FuelPowered) unit).refuel(amount);
             }
         }
     }
 
-    public void rechargeAll(double amount)throws InvalidOperationException{
-        for (int i = 0; i < unitCount; i++ ){
-            if (units[i] instanceof BatteryPowered){
-                ((BatteryPowered) units[i]).recharge(amount);
+    public void rechargeAll(double amount) throws InvalidOperationException {
+        for (ResponseUnit unit : units.values()) {
+            if (unit instanceof BatteryPowered) {
+                ((BatteryPowered) unit).recharge(amount);
             }
         }
     }
 
-    public void refillAllWater(double amount)throws InvalidOperationException{
-        for (int i = 0; i < unitCount; i++ ){
-            if (units[i] instanceof WaterCarrier){
-                ((WaterCarrier) units[i]).refillWater(amount);
+    public void refillAllWater(double amount) throws InvalidOperationException {
+        for (ResponseUnit unit : units.values()) {
+            if (unit instanceof WaterCarrier) {
+                ((WaterCarrier) unit).refillWater(amount);
             }
         }
     }
 
-    public void restockAllSupplies(double amount)throws InvalidOperationException{
-        for (int i = 0; i < unitCount; i++ ){
-            if (units[i] instanceof SupplyCarrier){
-                ((SupplyCarrier) units[i]).loadSupplies((int) amount);
+    public void restockAllSupplies(double amount) throws InvalidOperationException {
+        for (ResponseUnit unit : units.values()) {
+            if (unit instanceof SupplyCarrier) {
+                ((SupplyCarrier) unit).loadSupplies((int) amount);
             }
         }
     }
 
-    public void restockAllContainment(double amount) throws  InvalidOperationException{
-        for (int i = 0; i < unitCount; i++ ){
-            if (units[i] instanceof ContainmentCarrier){
-                ((ContainmentCarrier) units[i]).loadContainment((int) amount);
+    public void restockAllContainment(double amount) throws InvalidOperationException {
+        for (ResponseUnit unit : units.values()) {
+            if (unit instanceof ContainmentCarrier) {
+                ((ContainmentCarrier) unit).loadContainment((int) amount);
             }
         }
     }
@@ -275,7 +285,7 @@ public class DispatchManager {
     public String generateReport() {
         String report = "";
         report += "SYSTEM REPORT\n";
-        report += "Total response units: " + unitCount + "\n";
+        report += "Total response units: " + units.size() + "\n";
 
         int count_available_responseUnit = 0;
         double total_dist_everyUnit = 0;
@@ -285,12 +295,15 @@ public class DispatchManager {
         int total_unresolved_severe = 0;
         ResponseUnit unit_w_greatest_completed = null;
         Incident curr_open_w_greated_priority = null;
+        ResponseUnit unit_w_greatest_distance = null;
 
-        for (int i = 0; i < incidentCount; i++) {
-            Incident incident = incidents[i];
+        IncidentPriorityComparator priorityCompare = new IncidentPriorityComparator();
+        UnitDistanceComparator distanceCompare = new UnitDistanceComparator();
+
+        for (Incident incident : incidents.values()) {
             if (incident.getStatus().equals("OPEN")) {
                 total_open_incident++;
-                if (curr_open_w_greated_priority == null || incident.getPriorityWeight() > curr_open_w_greated_priority.getPriorityWeight()) {
+                if (curr_open_w_greated_priority == null || priorityCompare.compare(incident, curr_open_w_greated_priority) < 0) {
                     curr_open_w_greated_priority = incident;
                 }
             }
@@ -303,8 +316,10 @@ public class DispatchManager {
             }
         }
 
-        for (int i = 0; i < unitCount; i++) {
-            ResponseUnit unit = units[i];
+        for (ResponseUnit unit : units.values()) {
+            if (unit_w_greatest_distance == null || distanceCompare.compare(unit, unit_w_greatest_distance) < 0){
+                unit_w_greatest_distance = unit;
+            }
             if (unit.isAvailable()) {
                 count_available_responseUnit++;
             }
@@ -316,25 +331,28 @@ public class DispatchManager {
         }
 
         report += "Total available response units: " + count_available_responseUnit + "\n";
-        report += "Total busy response units: " + (unitCount - count_available_responseUnit) + "\n";
+        report += "Total busy response units: " + (units.size() - count_available_responseUnit) + "\n";
         report += "Total distance travelled by all units: " + total_dist_everyUnit + " km\n";
         report += "Total incidents completed by all units: " + total_incidents_everyUnit + "\n";
+        report += "Total incidents: " + incidents.size() + "\n";
         report += "Total open incidents: " + total_open_incident + "\n";
-        report += "Total assigned incidents: " + (incidentCount - total_open_incident - total_resolved_incident) + "\n";
+        report += "Total assigned incidents: " + (incidents.size() - total_open_incident - total_resolved_incident) + "\n";
         report += "Total resolved incidents: " + total_resolved_incident + "\n";
         report += "Total number of unresolved cases with severity-4 or severity-5: " + total_unresolved_severe + "\n";
+        report += "Distinct response-unit capabilities: " + getDistinctCapabilities() + "\n";
         report += "The response unit with the greatest number of completed incidents: "
                 + (unit_w_greatest_completed == null ? "None" : unit_w_greatest_completed.getId()) + "\n";
+        report += "The response unit with the greatest distance travelled: " + (unit_w_greatest_distance == null ? "None"
+                : unit_w_greatest_distance.getId() + " (" + unit_w_greatest_distance.getTotalDistanceTravelled() + " km)\n");
         report += "The currently OPEN incident having the greatest priority weight: "
                 + (curr_open_w_greated_priority == null ? "None" : curr_open_w_greated_priority.getId()) + "\n";
 
         int unserviceable = 0;
-        for (int i = 0; i < incidentCount; i++) {
+        for (Incident incident : incidents.values()) {
             boolean isIT = true;
-            Incident incident = incidents[i];
             if (incident.getStatus().equals("OPEN")) {
-                for (int j = 0; j < unitCount; j++) {
-                    if (units[j].isAvailable() && units[j].canHandle(incident) && units[j].hasResourcesFor(incident)) {
+                for (ResponseUnit unit : units.values()) {
+                    if (unit.isAvailable() && unit.canHandle(incident) && unit.hasResourcesFor(incident)) {
                         isIT = false;
                         break;
                     }
@@ -354,45 +372,43 @@ public class DispatchManager {
 
         System.out.println("Currently Unserviceable Incidents");
 
-        for (int i = 0; i < incidentCount; i++) {
-            Incident incident = incidents[i];
+        for (Incident incident : incidents.values()) {
+            if (!incident.getStatus().equals("OPEN")) {
+                continue;
+            }
             boolean isService = false;
             boolean hasResource = false;
 
-            if (incident.getStatus().equals("OPEN")) {
-                for (int j = 0; j < unitCount; j++) {
-                    if (units[j].isAvailable() && units[j].canHandle(incident) && units[j].hasResourcesFor(incident)) {
-                        isService = true;
-                        break;
-                    }
-                    if (units[j].canHandle(incident) && units[j].hasResourcesFor(incident)) {
-                        hasResource = true;
-                    }
+            for (ResponseUnit unit : units.values()) {
+                if (unit.isAvailable() && unit.canHandle(incident) && unit.hasResourcesFor(incident)) {
+                    isService = true;
+                    break;
                 }
-
-                if (!isService) {
-                    foundAny = true;
-                    if (hasResource) {
-                        System.out.println(incident.getId() + "  " + incident.getRequiredCapability() + "  No suitable available unit");
-                    } else {
-                        System.out.println(incident.getId() + "  " + incident.getRequiredCapability() + "  Insufficient resources");
-                    }
+                if (unit.canHandle(incident) && unit.hasResourcesFor(incident)) {
+                    hasResource = true;
                 }
+            }
 
+            if (!isService) {
+                foundAny = true;
+                if (hasResource) {
+                    System.out.println(incident.getId() + "  " + incident.getRequiredCapability() + "  No suitable available unit");
+                } else {
+                    System.out.println(incident.getId() + "  " + incident.getRequiredCapability() + "  Insufficient resources");
+                }
             }
         }
-
         if (!foundAny) {
             System.out.println("All open incidents are currently serviceable.");
         }
     }
 
+
     public void saveState(String prefix) throws InvalidOperationException {
         try {
             PrintWriter unitWriter = new PrintWriter(new FileWriter(prefix + "_units.csv"));
 
-            for (int i = 0; i < unitCount; i++) {
-                ResponseUnit unit = units[i];
+            for (ResponseUnit unit : units.values()) {
                 String unitType = "UNKNOWN";
                 String trafficFactor = "0";
                 if (unit instanceof GroundResponseUnit) {
@@ -441,8 +457,7 @@ public class DispatchManager {
 
             PrintWriter incidentWriter = new PrintWriter(new FileWriter(prefix + "_incidents.csv"));
 
-            for (int i = 0; i < incidentCount; i++) {
-                Incident incident = incidents[i];
+            for (Incident incident : incidents.values()) {
 
                 String extra = "";
                 String incidentType = "UNKNOWN";
@@ -488,10 +503,8 @@ public class DispatchManager {
 
 
     public void loadState(String prefix) throws InvalidOperationException {
-        this.unitCount = 0;
-        this.incidentCount = 0;
-        for (int i = 0; i < units.length; i++) units[i] = null;
-        for (int i = 0; i < incidents.length; i++) incidents[i] = null;
+        HashMap<String, ResponseUnit> newUnits = new HashMap<>();
+        HashMap<String, Incident> newIncidents = new HashMap<>();
 
         try {
             BufferedReader unitReader = new BufferedReader(new FileReader(prefix + "_units.csv"));
@@ -515,12 +528,14 @@ public class DispatchManager {
                     double water = Double.parseDouble(p[11]);
                     int supplies = Integer.parseInt(p[12]);
                     double containment = Double.parseDouble(p[13]);
+                    int patients = Integer.parseInt(p[14]);
 
                     ResponseUnit unit = null;
 
                     if (type.equals("AMBULANCE")) {
                         Ambulance a = new Ambulance(id, name, maxSpeed, trafficFactor);
                         a.setFuelLevel(fuel);
+                        a.boardPatients(patients);
                         unit = a;
                     }
                     else if (type.equals("FIRE_ENGINE")) {
@@ -553,8 +568,13 @@ public class DispatchManager {
 
                     // restoreState is an extra method added in response class as an alternative to set methods
                     unit.restoreState(totalDistance, available, assignedIncidentId, completed);
-                    units[unitCount] = unit;
-                    unitCount++;
+
+                    if (newUnits.containsKey(id)) {
+                        System.out.println("Duplicate unit ID, skipping: " + id);
+                        continue;
+                    }
+
+                    newUnits.put(id, unit);
 
                 } catch (Exception e) {
                     System.out.println("Skipping unknown unit record: " + line);
@@ -599,14 +619,21 @@ public class DispatchManager {
                     }
 
                     incident.restoreState(status, assignedUnitId);
-                    incidents[incidentCount] = incident;
-                    incidentCount++;
+                    if (newIncidents.containsKey(id)) {
+                        System.out.println("Duplicate incident ID, skipping: " + id);
+                        continue;
+                    }
+                    newIncidents.put(id, incident);
 
                 } catch (Exception e) {
                     System.out.println("Skipping unknown incident record: " + line);
                 }
             }
             incidentReader.close();
+            units.clear();
+            units.putAll(newUnits);
+            incidents.clear();
+            incidents.putAll(newIncidents);
 
         } catch (IOException e) {
             throw new InvalidOperationException("Failed to load state: " + e.getMessage());

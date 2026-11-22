@@ -95,7 +95,7 @@ public class Ambulance extends GroundResponseUnit implements FuelPowered, Patien
 
     @Override
     public int getPatientCapacity(){
-        return currentPatients;
+        return patientCapacity;
     }
 
     @Override
