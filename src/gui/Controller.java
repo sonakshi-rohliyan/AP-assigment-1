@@ -1,17 +1,24 @@
 package gui;
 
 import dispatch.DispatchManager;
+import exceptions.InvalidOperationException;
 import incidents.*;
 import unit.*;
 import java.io.ByteArrayOutputStream;
+import java.io.Console;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.function.Consumer;
+import dispatch.IncidentResponseTask;
 
 public class Controller {
     private final DispatchManager manager;
+    private final HashSet<String> runningResponse;
 
     public Controller(DispatchManager manager){
         this.manager = manager;
+        this.runningResponse = new HashSet<>();
     }
 
     public String addUnit(String type, String id, String name, double speed, double trafficFactor) throws Exception{
@@ -147,8 +154,50 @@ public class Controller {
     }
 
     public String resolve(String incidentId) throws Exception {
+        synchronized (runningResponse) {
+            if (runningResponse.contains(incidentId)) {
+                throw new InvalidOperationException("Incident " + incidentId  + " is already being resolved.");
+            }
+        }
         String printed = captureOutput(() -> manager.resolveIncident(incidentId));
         return printed + "Incident " + incidentId + " resolved.\n";
+    }
+
+    public String runResponse(String incidentId, Consumer<String> afterTaskFinished) throws Exception{
+        Incident incident = manager.findIncident(incidentId);
+        if (incident == null){
+            throw new InvalidOperationException("Incident "+incidentId+" is not present");
+        }
+
+        if (!incident.getStatus().equals("ASSIGNED")){
+            throw new InvalidOperationException("Incident "+incidentId+" is not assigned yet");
+        }
+
+        synchronized (runningResponse){
+            if(!runningResponse.add(incidentId)){
+                throw new InvalidOperationException("Incident "+incidentId+" is already being resolved.");
+            }
+        }
+
+        try {
+            Consumer<String> cleanupThenNotify = text -> {
+                synchronized (runningResponse){
+                    runningResponse.remove(incidentId);
+                }
+                afterTaskFinished.accept(text);
+            };
+            IncidentResponseTask task = new IncidentResponseTask(manager, incidentId, cleanupThenNotify);
+            Thread thread = new Thread(task);
+            thread.setName("response of " +incidentId);
+            thread.start();
+        }
+        catch (RuntimeException e){
+            synchronized (runningResponse){
+                runningResponse.remove(incidentId);
+            }
+            throw e;
+        }
+        return "Incident " + incidentId +" resolution has started.\n";
     }
 
     public String stateSummary() {
@@ -168,6 +217,12 @@ public class Controller {
         return manager.generateReport();
     }
 
+    public boolean hasActiveResponses() {
+        synchronized (runningResponse) {
+            return !runningResponse.isEmpty();
+        }
+    }
+
     public String save(String prefix) throws Exception {
         String printed = captureOutput(() -> manager.saveState(prefix));
         return printed + "State saved to " + prefix + "_units.csv and " + prefix + "_incidents.csv.\n";
@@ -175,6 +230,9 @@ public class Controller {
 
     public String load(String prefix) throws Exception {
         String printed = captureOutput(() -> manager.loadState(prefix));
+        if (hasActiveResponses()) {
+            throw new InvalidOperationException("Cannot load while incident is being resolved.");
+        }
         return printed + "State loaded from prefix \"" + prefix + "\".\n";
     }
 }

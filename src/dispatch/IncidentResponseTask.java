@@ -17,7 +17,7 @@ public class IncidentResponseTask implements Runnable {
     public void run() {
         StringBuilder output = new StringBuilder();
         try {
-            Thread.sleep(3000);
+            Thread.sleep(5000);
             dispatchManager.resolveIncident(incidentId);
             output.append("The incident ").append(incidentId).append(" is resolved\n");
         }

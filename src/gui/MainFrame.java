@@ -217,6 +217,7 @@ public class MainFrame extends JFrame {
         makeButton(row, "Preview Dispatch", event -> runIncidentAction(controller::previewDispatch, false));
         makeButton(row, "Dispatch Incident", event -> runIncidentAction(controller::dispatch, true));
         makeButton(row, "Resolve Incident", event -> runIncidentAction(controller::resolve, true));
+        makeButton(row, "Start Incident Resolution", event -> runIncidentAction(id->controller.runResponse(id, this::afterTaskFinished),false));
         return row;
     }
 
@@ -295,7 +296,13 @@ public class MainFrame extends JFrame {
         return row;
     }
 
-
+    private void afterTaskFinished(String text) {
+        SwingUtilities.invokeLater(() -> {
+            appendOutput(text);
+            appendOutput(controller.stateSummary() + "\n");
+            refreshView();
+        });
+    }
 
     private  JScrollPane builtOutput(){
         output_area = new JTextArea(20,60);
